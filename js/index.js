@@ -1,6 +1,8 @@
 "use strict";
 
-const DATA = [
+import { filterData, renderWithFilters } from './filters.js';
+
+export const DATA = [
 	{
 		"first name": "Олексій",
 		"last name": "Петров",
@@ -243,45 +245,93 @@ const DATA = [
 	},
 ];
 
-import {findTrainerData, disableScroll, enableScroll} from "./general-functions.js";
-import {sortDataFunction, sortingBarElement} from "./sorting-bar.js";
-import {renderCardFunction, trainersCardsContainerEl, showMoreButtonCollectionEl} from "./rendering-cards.js";
+// -------GENERAL FUNCTIONS -----------------------------------
 
+export const trainersCardsContainer = document.querySelector('.trainers-cards__container');
+const trainerCardTemplate = document.querySelector('#trainer-card').content;
+const sortingBar = document.querySelector('.sorting');
 const filtersBar = document.querySelector('.sidebar');
 const initialData = [...DATA];
 const modalWindowTemplate = document.querySelector('#modal-template').content;
-const sortButtonsTitle = document.querySelector('.sorting__title');
+let showMoreButtonCollection;
+let scrollPosition = null;
 
+const findTrainerData = (fullName) => {
 
-trainersCardsContainerEl.addEventListener('click', (event) => {
+	let trainerObj = {};
+
+	DATA.forEach(el => {
+
+		if (`${el["last name"]} ${el["first name"]}` === fullName) {
+			for (let key in el) {
+				trainerObj[key] = el[key];
+			}
+		}
+	})
+	return trainerObj;
+};
+
+const disableScroll = () => {
+	scrollPosition = window.scrollY;
+	document.body.style.width = '100%';
+	document.body.style.overflow = 'hidden';
+	document.body.style.position = 'fixed';
+	document.body.style.top = `-${scrollPosition}px`;
+};
+
+const enableScroll = () => {
+	document.body.style.width = '';
+	document.body.style.overflow = '';
+	document.body.style.position = '';
+	document.body.style.top = '';
+	window.scrollTo(0, scrollPosition);
+};
+
+// ------ RENDER CARDS FUNCTION ---------------------------------------
+
+export const renderCard = (arr) => {
+
+	arr.forEach(trainer => {
+		const trainerCard = trainerCardTemplate.cloneNode(true);
+		trainerCard.querySelector('.trainer__img').src = trainer.photo;
+		trainerCard.querySelector('.trainer__name').innerText = `${trainer["last name"]} ${trainer["first name"]}`;
+		trainersCardsContainer.append(trainerCard);
+	});
+
+	showMoreButtonCollection = document.querySelectorAll('.trainer__show-more');
+};
+
+// ------ MODAL WINDOW ------------------------------------------
+
+trainersCardsContainer.addEventListener('click', (event) => {
 
 	if (event.target === event.currentTarget) {
 		return;
-	}
+	};
 
-	let modalWindow = null;
-
-	showMoreButtonCollectionEl.forEach(el => {
+	showMoreButtonCollection.forEach(el => {
 
 		if (event.target !== el) {
 			return;
 
 		} else {
-			modalWindow = modalWindowTemplate.cloneNode(true);
+			const modalWindow = modalWindowTemplate.cloneNode(true);
 			modalWindow.querySelector('.modal__img').src = event.target.closest('.trainer').querySelector('.trainer__img').src;
 			modalWindow.querySelector('.modal__name').innerText = event.target.closest('.trainer').querySelector('.trainer__name').innerText;
 
 			const modalPointCollection = modalWindow.querySelectorAll('.modal__point');
 
 			modalPointCollection.forEach(el => {
+
 				const modificator = el.className.split('--')[1];
+
 				el.innerText = `${modalWindow.querySelector(`.modal__point--${modificator}`)
 					.innerText.split(': ')[0]}: ${findTrainerData(modalWindow.querySelector('.modal__name').innerText)[modificator]}`;
 			});
 
 			modalWindow.querySelector('.modal__text').innerText = ` ${findTrainerData(modalWindow.querySelector('.modal__name').innerText).description}`;
 
-			trainersCardsContainerEl.append(modalWindow);
+			trainersCardsContainer.append(modalWindow);
 			disableScroll();
 		};
 	});
@@ -292,128 +342,58 @@ trainersCardsContainerEl.addEventListener('click', (event) => {
 	};
 });
 
-renderCardFunction(DATA);
+// ----- SORTING --------------------------------------------------
 
-sortingBarElement.removeAttribute('hidden');
+const sortButtonsTitle = document.querySelector('.sorting__title');
+
+export const sortData = (arr) => {
+
+	sortingBar.addEventListener('click', (event) => {
+
+		if (event.target === event.currentTarget || event.target === sortButtonsTitle) {
+			return;
+		}
+
+		document.querySelector('.sorting__btn--active')?.classList.remove('sorting__btn--active');
+
+		event.target.classList.add('sorting__btn--active');
+
+		switch (event.target.innerText.toLowerCase()) {
+
+			case 'за прізвищем': {
+				arr.sort((a, b) => a["last name"].localeCompare(b["last name"]));
+				break;
+			}
+			case 'за досвідом': {
+				arr.sort((a, b) => parseInt(b.experience) - parseInt(a.experience));
+				break;
+			}
+			default: {
+				break;
+			}
+		};
+
+		trainersCardsContainer.innerHTML = '';
+
+		if (event.target.innerText.toLowerCase() === 'за замовчуванням') {
+
+			renderWithFilters(initialData);
+
+		} else {
+
+			renderWithFilters(DATA);
+		};
+	});
+};
+
+// ----- RENDERING PAGE ---------------------------------------
+
+renderCard(DATA);
+
+sortingBar.removeAttribute('hidden');
+
 filtersBar.removeAttribute('hidden');
 
-sortDataFunction()
+sortData(DATA);
 
-// sortingBar.addEventListener('click', (event) => {
-
-// 	if (event.target === event.currentTarget || event.target === sortButtonsTitle) {
-// 		return;
-// 	}
-
-// 	document.querySelector('.sorting__btn--active')?.classList.remove('sorting__btn--active');
-
-// 	event.target.classList.add('sorting__btn--active');
-
-// 	switch (event.target.innerText.toLowerCase()) {
-
-// 		case 'за прізвищем': {
-// 			DATA.sort((a, b) => a["last name"].localeCompare(b["last name"]));
-// 			break;
-// 		}
-// 		case 'за досвідом': {
-// 			DATA.sort((a, b) => parseInt(b.experience) - parseInt(a.experience));
-// 			break;
-// 		}
-// 		default: {
-// 			break;
-// 		}
-// 	};
-
-// 	trainersCardsContainer.innerHTML = '';
-
-// 	if (event.target.innerText.toLowerCase() === 'за замовчанням') {
-// 		renderCard(initialData);
-
-// 	} else {
-// 		renderCard(DATA);
-// 	}
-
-// });
-
-
-
-
-
-
-
-// const filtersForm = document.querySelector('.sidebar__filters');
-// const filterDirectionFieldset = document.querySelector('.sidebar__filters fieldset:first-child');
-// const filterCategoryFieldset = document.querySelector('.sidebar__filters fieldset:nth-child(2)');
-// const filterDirectionInputs = filterDirectionFieldset.querySelectorAll('.filters__input');
-
-
-
-// const filterByDirection = (id, arr) => {
-
-// 	let filteredData;
-
-// 	switch (id) {
-// 		case 'all-direction': {
-// 			filteredData = arr.filter(el => true);
-// 			break;
-// 		}
-// 		case 'gym': {
-// 			filteredData = arr.filter(el => el.specialization === 'Тренажерний зал');
-// 			break;
-// 		}
-// 		case 'fight-club': {
-// 			filteredData = arr.filter(el => el.specialization === 'Бійцівський клуб');
-// 			break;
-// 		}
-// 		case 'kids-club': {
-// 			filteredData = arr.filter(el => el.specialization === 'Дитячий клуб');
-// 			break;
-// 		}
-// 		case 'swimming-pool': {
-// 			filteredData = arr.filter(el => el.specialization === 'Басейн');
-// 			break;
-// 		}
-// 	};
-
-// 	return filteredData;
-// };
-
-
-// const filterByCategory = (id, arr) => {
-// 	let filteredData;
-
-// 	switch (id) {
-// 		case 'all-category': {
-// 			filteredData = arr.filter(el => true);
-// 			break;
-// 		}
-// 		case 'master': {
-// 			filteredData = arr.filter(el => el.category === 'майстер');
-// 			break;
-// 		}
-// 		case 'specialist': {
-// 			filteredData = arr.filter(el => el.category === 'спеціаліст');
-// 			break;
-// 		}
-// 		case 'instructor': {
-// 			filteredData = arr.filter(el => el.category === 'інструктор');
-// 			break;
-// 		}
-// 	};
-
-// 	// return filteredData;
-// console.log(filteredData)
-// }
-
-
-
-
-
-
-
-
-
-export const data = DATA;
-export const initialDataArr = initialData;
-export const sortingBarTitle = sortButtonsTitle;
-// export const trainersCardsContainerElement = trainersCardsContainer;
+filterData();

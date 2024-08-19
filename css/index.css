@@ -303,7 +303,7 @@ img {
 	text-transform: uppercase;
 }
 
-.filters__input:checked+.filters__label {
+.filters__input:checked + .filters__label {
 	background-image: url(../img/ellipse-checked.png);
 }
 
