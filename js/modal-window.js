@@ -1,0 +1,1 @@
+import {trainersCardsContainerEl} from "./rendering-cards.js";
